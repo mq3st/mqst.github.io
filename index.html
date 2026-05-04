@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Spin & Crash Game</title>
+    <title>CasEmp | Империя удачи</title>
+    <meta name="description" content="CasEmp — играй в захватывающие игры Спин и Ракетка. Повышай уровень, получай бонусы и сражайся с удачей!">
+    <meta name="keywords" content="casemp, casino empire, spin crash игра, ракетка игра, spin игра, казино империя">
+    <meta name="author" content="CasEmp">
+    
+    <!-- Open Graph для соцсетей -->
+    <meta property="og:title" content="CasEmp | Империя удачи">
+    <meta property="og:description" content="Испытай удачу в играх Спин и Ракетка!">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mq3st.github.io/mqst.github.io/">
+    
     <style>
         * {
             box-sizing: border-box;
@@ -30,6 +40,22 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             backdrop-filter: blur(4px);
             border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f9c74f;
+            text-shadow: 0 0 10px #f9844a;
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+
+        .logo small {
+            font-size: 0.7rem;
+            display: block;
+            color: #ccc;
         }
 
         .balance-card {
@@ -148,7 +174,6 @@
             transform: scale(0.97);
         }
 
-        /* Анимация ракеты */
         .rocket-area {
             background: #000000aa;
             border-radius: 20px;
@@ -200,7 +225,6 @@
             background: #e63946;
         }
 
-        /* Анимация спина (слота) */
         .slot-machine {
             text-align: center;
             margin: 15px 0;
@@ -287,6 +311,11 @@
 </head>
 <body>
 <div class="game-container">
+    <div class="logo">
+        🎰 CASEMP 🎰
+        <small>Империя удачи</small>
+    </div>
+    
     <div class="balance-card">
         <div>💰 БАЛАНС</div>
         <div class="balance-amount" id="balanceDisplay">10000</div>
@@ -311,7 +340,6 @@
             <button id="spinDoubleBtn">×2</button>
         </div>
         
-        <!-- Слот-машина с анимацией -->
         <div class="slot-machine">
             <div class="slot-reels">
                 <div class="reel">
@@ -349,7 +377,7 @@
     </div>
 
     <div class="log-area" id="logArea">
-        <div class="log-entry">✨ Добро пожаловать! Баланс 10000</div>
+        <div class="log-entry">✨ Добро пожаловать в CasEmp! Баланс 10000</div>
     </div>
 
     <footer>
@@ -359,7 +387,6 @@
 </div>
 
 <script>
-    // ------------------- ИГРОВОЕ СОСТОЯНИЕ -------------------
     let gameState = {
         balance: 10000,
         level: 1,
@@ -369,7 +396,6 @@
         lastBonusDate: null,
     };
 
-    // DOM элементы
     const balanceEl = document.getElementById('balanceDisplay');
     const levelEl = document.getElementById('level');
     const xpEl = document.getElementById('xp');
@@ -411,14 +437,12 @@
         gameState.wins++;
         gameState.failCount = 0;
         updateUI();
-        
-        // Визуальный эффект выигрыша
         const resultDiv = document.getElementById('spinResult');
         resultDiv.classList.add('win-flash');
         setTimeout(() => resultDiv.classList.remove('win-flash'), 500);
     }
 
-    function addLose(loseAmount, isThirteen = false) {
+    function addLose(loseAmount) {
         gameState.balance -= loseAmount;
         gameState.failCount++;
         updateUI();
@@ -446,7 +470,6 @@
         rocket.classList.remove('rocket-flying', 'rocket-crash');
     }
 
-    // ------------------- АНИМАЦИЯ СПИНА -------------------
     function spinAnimation(playerNum, casinoNum, callback) {
         const spinPanel = document.getElementById('spinPanel');
         spinPanel.classList.add('spinning');
@@ -469,7 +492,6 @@
         }, 50);
     }
 
-    // ------------------- АНИМАЦИЯ РАКЕТЫ -------------------
     function rocketFlyAnimation() {
         rocket.classList.remove('rocket-crash');
         rocket.classList.add('rocket-flying');
@@ -487,7 +509,6 @@
         rocket.classList.remove('rocket-flying', 'rocket-crash');
     }
 
-    // ------------------- СПИН (СЛОТ) -------------------
     function getSpinRange() {
         let fail = gameState.failCount;
         if (fail >= 20) return { max: 14, name: 'СУПЕР БОНУС x3.5' };
@@ -509,7 +530,6 @@
 
         addLog(`🎲 СПИН | Ставка ${bet} | Диапазон 1-${maxNum} (${range.name})`);
 
-        // Запускаем анимацию
         spinAnimation(playerNum, casinoNum, () => {
             let resultMsg = `Ваше число: ${playerNum} | Казино: ${casinoNum}. `;
             
@@ -530,7 +550,7 @@
                 } else {
                     resultMsg += `Неудача. `;
                 }
-                addLose(loseAmount, is13);
+                addLose(loseAmount);
                 addXp(5);
                 resultMsg += `Потеряно ${loseAmount} монет.`;
                 addLog(`😔 ${resultMsg} | Неудач подряд: ${gameState.failCount}`);
@@ -546,7 +566,6 @@
         return true;
     }
 
-    // ------------------- РАКЕТКА CRASH -------------------
     let crashActive = false;
     let crashMultiplier = 1.0;
     let crashCrashPoint = 1.0;
@@ -596,7 +615,6 @@
         document.getElementById('cashoutBtn').disabled = false;
         document.getElementById('crashStatus').innerHTML = `🚀 Взлёт! Множитель растёт...`;
         
-        // Запускаем анимацию полёта ракеты
         rocketFlyAnimation();
         
         let startTime = Date.now();
@@ -633,7 +651,6 @@
         }
     }
 
-    // Ежедневный бонус
     function dailyBonus() {
         let today = new Date().toDateString();
         if (gameState.lastBonusDate === today) {
@@ -647,7 +664,6 @@
         addLog(`🎁 ЕЖЕДНЕВНЫЙ БОНУС! +${bonus} монет. Баланс: ${gameState.balance}`);
     }
 
-    // ---------- ИНИЦИАЛИЗАЦИЯ UI И ОБРАБОТЧИКОВ ----------
     document.getElementById('spinActionBtn').onclick = () => {
         let bet = parseInt(document.getElementById('spinBet').value);
         if (isNaN(bet)) bet = 100;
@@ -662,7 +678,6 @@
     document.getElementById('dailyBonusBtn').onclick = () => dailyBonus();
     document.getElementById('resetGameBtn').onclick = () => resetGame();
 
-    // Вкладки
     const spinPanel = document.getElementById('spinPanel');
     const crashPanel = document.getElementById('crashPanel');
     const spinTab = document.getElementById('spinTabBtn');
@@ -670,14 +685,13 @@
     spinTab.onclick = () => { spinPanel.style.display = 'block'; crashPanel.style.display = 'none'; spinTab.classList.add('active'); crashTab.classList.remove('active'); };
     crashTab.onclick = () => { spinPanel.style.display = 'none'; crashPanel.style.display = 'block'; crashTab.classList.add('active'); spinTab.classList.remove('active'); if (crashIntervalId) clearInterval(crashIntervalId); rocketStopAnimation(); };
     
-    // помощники ставок
     document.getElementById('spinHalfBtn').onclick = () => { let inp = document.getElementById('spinBet'); inp.value = Math.max(1, Math.floor(parseInt(inp.value)/2)); };
     document.getElementById('spinDoubleBtn').onclick = () => { let inp = document.getElementById('spinBet'); inp.value = Math.floor(parseInt(inp.value)*2); };
     document.getElementById('crashHalfBtn').onclick = () => { let inp = document.getElementById('crashBet'); inp.value = Math.max(1, Math.floor(parseInt(inp.value)/2)); };
     document.getElementById('crashDoubleBtn').onclick = () => { let inp = document.getElementById('crashBet'); inp.value = Math.floor(parseInt(inp.value)*2); };
 
     updateUI();
-    addLog('🎮 Готово! Играй в Спин или Ракетку. Баланс 10000');
+    addLog('🎮 Добро пожаловать в CasEmp! Баланс 10000');
 </script>
 </body>
 </html>

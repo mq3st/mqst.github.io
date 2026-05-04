@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Spin & Crash Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .balance-card {
+            background: #0f3460;
+            border-radius: 30px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3), 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        .balance-amount {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #f9c74f;
+            text-shadow: 0 0 5px #f9844a;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: #1e2a3e;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            text-align: center;
+            flex: 1;
+            color: #ccc;
+        }
+
+        .stat span {
+            display: block;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #f72585;
+        }
+
+        .game-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .game-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #2a2a4a;
+            color: white;
+        }
+
+        .game-btn.active {
+            background: #f72585;
+            box-shadow: 0 0 15px #f72585;
+        }
+
+        .game-panel {
+            background: #0a0f1f;
+            border-radius: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .bet-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .bet-input input {
+            flex: 2;
+            padding: 12px;
+            border-radius: 30px;
+            border: none;
+            background: #1e2a3e;
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .bet-input button {
+            flex: 1;
+            background: #f9844a;
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            background: #4c9f70;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.1s linear;
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+        }
+
+        .crash-area {
+            background: #000000aa;
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .multiplier {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #f9c74f;
+            font-family: monospace;
+        }
+
+        .crash-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .cashout-btn {
+            background: #e63946;
+        }
+
+        .log-area {
+            background: #07111f;
+            border-radius: 20px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #8ab4f8;
+        }
+
+        .log-entry {
+            border-bottom: 1px solid #1e2a3e;
+            padding: 5px;
+            font-family: monospace;
+        }
+
+        footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        footer button {
+            flex: 1;
+            background: #2a2a4a;
+            border: none;
+            padding: 8px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1);}
+            100% { opacity: 0.7; transform: scale(1.02);}
+        }
+        .in-crash {
+            animation: pulse 0.5s infinite alternate;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="balance-card">
+        <div>💰 БАЛАНС</div>
+        <div class="balance-amount" id="balanceDisplay">10000</div>
+        <div class="stats">
+            <div class="stat">🎖️ Уровень<br><span id="level">1</span></div>
+            <div class="stat">⭐ Опыт<br><span id="xp">0/100</span></div>
+            <div class="stat">🏆 Победы<br><span id="wins">0</span></div>
+            <div class="stat">😵 Неудач<br><span id="failCount">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-buttons">
+        <button class="game-btn" id="spinTabBtn">🎰 СПИН</button>
+        <button class="game-btn" id="crashTabBtn">🚀 РАКЕТКА</button>
+    </div>
+
+    <!-- СПИН МОД -->
+    <div id="spinPanel" class="game-panel">
+        <div class="bet-input">
+            <input type="number" id="spinBet" placeholder="Ставка" value="100">
+            <button id="spinHalfBtn">½</button>
+            <button id="spinDoubleBtn">×2</button>
+        </div>
+        <button class="action-btn" id="spinActionBtn">КРУТИТЬ</button>
+        <div id="spinResult" style="margin-top:15px;font-weight:bold;text-align:center;"></div>
+    </div>
+
+    <!-- РАКЕТКА МОД -->
+    <div id="crashPanel" class="game-panel" style="display:none;">
+        <div class="bet-input">
+            <input type="number" id="crashBet" placeholder="Ставка" value="100">
+            <button id="crashHalfBtn">½</button>
+            <button id="crashDoubleBtn">×2</button>
+        </div>
+        <div class="crash-area">
+            <div>🚀 МНОЖИТЕЛЬ</div>
+            <div class="multiplier" id="multiplierDisplay">1.00</div>
+            <div class="crash-controls">
+                <button class="action-btn" id="startCrashBtn">СТАРТ ВЗЛЁТА</button>
+                <button class="action-btn cashout-btn" id="cashoutBtn" style="background:#6c757d;" disabled>ЗАБРАТЬ</button>
+            </div>
+            <div id="crashStatus" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <div class="log-area" id="logArea">
+        <div class="log-entry">✨ Добро пожаловать! Баланс 10000</div>
+    </div>
+
+    <footer>
+        <button id="dailyBonusBtn">🎁 Ежедневный</button>
+        <button id="resetGameBtn">🔄 Сброс</button>
+    </footer>
+</div>
+
+<script>
+    // ------------------- ИГРОВОЕ СОСТОЯНИЕ -------------------
+    let gameState = {
+        balance: 10000,
+        level: 1,
+        xp: 0,
+        wins: 0,
+        failCount: 0,
+        lastBonusDate: null,
+        // Система неудач для Spin
+        // Доп. улучшения пока оставим для простоты, но можно расширить
+    };
+
+    // Вспомогательные DOM элементы
+    const balanceEl = document.getElementById('balanceDisplay');
+    const levelEl = document.getElementById('level');
+    const xpEl = document.getElementById('xp');
+    const winsEl = document.getElementById('wins');
+    const failCountEl = document.getElementById('failCount');
+    const logArea = document.getElementById('logArea');
+
+    function addLog(msg) {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        div.textContent = new Date().toLocaleTimeString() + ' | ' + msg;
+        logArea.prepend(div);
+        if (logArea.children.length > 20) logArea.removeChild(logArea.lastChild);
+    }
+
+    function updateUI() {
+        balanceEl.innerText = Math.floor(gameState.balance);
+        levelEl.innerText = gameState.level;
+        xpEl.innerText = gameState.xp + '/100';
+        winsEl.innerText = gameState.wins;
+        failCountEl.innerText = gameState.failCount;
+    }
+
+    function addXp(amount) {
+        gameState.xp += amount;
+        while (gameState.xp >= 100) {
+            gameState.level++;
+            gameState.xp -= 100;
+            addLog(`⭐ ПОВЫШЕНИЕ УРОВНЯ! Теперь уровень ${gameState.level}`);
+        }
+        updateUI();
+    }
+
+    function addWin(winAmount) {
+        gameState.balance += winAmount;
+        gameState.wins++;
+        gameState.failCount = 0;
+        updateUI();
+    }
+
+    function addLose(loseAmount, isThirteen = false) {
+        gameState.balance -= loseAmount;
+        gameState.failCount++;
+        updateUI();
+        if (gameState.balance <= 0) {
+            addLog('💀 ИГРА ОКОНЧЕНА! Деньги кончились. Используйте Сброс или бонус пополнения.');
+        }
+    }
+
+    function resetGame() {
+        gameState = {
+            balance: 10000,
+            level: 1,
+            xp: 0,
+            wins: 0,
+            failCount: 0,
+            lastBonusDate: gameState.lastBonusDate,
+        };
+        updateUI();
+        addLog('🔄 Игра сброшена до начальных значений (10000 монет).');
+        if (window.crashInterval) clearInterval(window.crashInterval);
+        document.getElementById('crashStatus').innerHTML = '';
+        document.getElementById('multiplierDisplay').innerHTML = '1.00';
+        document.getElementById('cashoutBtn').disabled = true;
+        document.getElementById('startCrashBtn').disabled = false;
+    }
+
+    // ------------------- СПИН (СЛОТ) -------------------
+    function getSpinRange() {
+        let fail = gameState.failCount;
+        if (fail >= 20) return { max: 14, name: 'СУПЕР БОНУС x3.5' };
+        if (fail >= 10) return { max: 25, name: 'БОНУС x2' };
+        let lvl = gameState.level;
+        if (lvl >= 10) return { max: 30, name: 'уровень 10+' };
+        if (lvl >= 5) return { max: 40, name: 'уровень 5+' };
+        return { max: 50, name: 'обычный' };
+    }
+
+    function spinGame(bet) {
+        if (bet <= 0) { addLog('❌ Ставка должна быть больше 0'); return false; }
+        if (bet > gameState.balance) { addLog('❌ Не хватает денег!'); return false; }
+
+        let range = getSpinRange();
+        let maxNum = range.max;
+        let playerNum = Math.floor(Math.random() * maxNum) + 1;
+        let casinoNum = Math.floor(Math.random() * maxNum) + 1;
+
+        addLog(`🎲 СПИН | Ставка ${bet} | Диапазон 1-${maxNum} (${range.name})`);
+
+        let resultMsg = `Ваше число: ${playerNum} | Казино: ${casinoNum}. `;
+        if (playerNum === casinoNum) {
+            let multiplierBase = 40 + (gameState.level * 2);
+            let winAmount = bet * multiplierBase;
+            addWin(winAmount);
+            addXp(25);
+            resultMsg += `ДЖЕКПОТ x${multiplierBase}! Выигрыш +${winAmount} монет!`;
+            addLog(`✨ ${resultMsg} ✨`);
+        } else {
+            let loseAmount = bet;
+            let is13 = (playerNum === 13 || casinoNum === 13);
+            if (is13) {
+                loseAmount = bet * 2;
+                resultMsg += `ВЫПАЛО 13! Штраф удвоен. `;
+            } else {
+                resultMsg += `Неудача. `;
+            }
+            addLose(loseAmount, is13);
+            addXp(5);
+            resultMsg += `Потеряно ${loseAmount} монет.`;
+            addLog(`😔 ${resultMsg} | Неудач подряд: ${gameState.failCount}`);
+        }
+        updateUI();
+        if (gameState.balance <= 0) addLog('💀 Денег нет! Нажмите кнопку Сброс, либо ждите бонус пополнения.');
+        return true;
+    }
+
+    // ------------------- РАКЕТКА CRASH -------------------
+    let crashActive = false;
+    let crashMultiplier = 1.0;
+    let crashCrashPoint = 1.0;
+    let crashIntervalId = null;
+    let currentCrashBet = 0;
+
+    function stopCrashGame(manualCashout = false) {
+        if (crashIntervalId) clearInterval(crashIntervalId);
+        crashIntervalId = null;
+        if (crashActive) {
+            if (manualCashout && crashMultiplier < crashCrashPoint) {
+                let winAmount = Math.floor(currentCrashBet * crashMultiplier);
+                addWin(winAmount);
+                addLog(`💰 ЗАБРАЛИ ДЕНЬГИ! Множитель x${crashMultiplier.toFixed(2)} | Выигрыш +${winAmount}`);
+                addXp(15);
+            } else if (!manualCashout && crashMultiplier >= crashCrashPoint) {
+                let lost = currentCrashBet;
+                addLose(lost);
+                addLog(`💥 РАКЕТКА ВЗОРВАЛАСЬ при x${crashCrashPoint.toFixed(2)} | Потеряно ${lost}`);
+            }
+        }
+        crashActive = false;
+        document.getElementById('multiplierDisplay').innerHTML = '1.00';
+        document.getElementById('startCrashBtn').disabled = false;
+        document.getElementById('cashoutBtn').disabled = true;
+        document.getElementById('crashStatus').innerHTML = '';
+        updateUI();
+    }
+
+    function startCrash(bet) {
+        if (crashActive) { addLog('⚠️ Игра уже активна, сначала завершите'); return false; }
+        if (bet <= 0) { addLog('Ставка должна быть больше 0'); return false; }
+        if (bet > gameState.balance) { addLog('Недостаточно баланса!'); return false; }
+        // Снимаем ставку сразу
+        gameState.balance -= bet;
+        updateUI();
+        currentCrashBet = bet;
+        crashMultiplier = 1.0;
+        crashCrashPoint = parseFloat((Math.random() * (4.0 - 1.1) + 1.1).toFixed(2));
+        crashActive = true;
+        document.getElementById('multiplierDisplay').innerHTML = '1.00';
+        document.getElementById('startCrashBtn').disabled = true;
+        document.getElementById('cashoutBtn').disabled = false;
+        document.getElementById('crashStatus').innerHTML = `🚀 Взлёт! Множитель растёт... Точка краша скрыта.`;
+
+        let startTime = Date.now();
+        if (crashIntervalId) clearInterval(crashIntervalId);
+        crashIntervalId = setInterval(() => {
+            if (!crashActive) {
+                if (crashIntervalId) clearInterval(crashIntervalId);
+                crashIntervalId = null;
+                return;
+            }
+            let elapsed = (Date.now() - startTime) / 1000;
+            let newMult = 1.0 + elapsed * 1.2;
+            if (newMult > 10) newMult = 10;
+            crashMultiplier = parseFloat(newMult.toFixed(2));
+            document.getElementById('multiplierDisplay').innerHTML = crashMultiplier.toFixed(2);
+            if (crashMultiplier >= crashCrashPoint) {
+                // Взрыв
+                addLog(`💥 ВЗРЫВ! Ракетка упала при x${crashCrashPoint.toFixed(2)}. Ставка ${currentCrashBet} монет потеряна.`);
+                addLose(0); // уже сняли ставку в начале, тут просто обновляем фейлКаунт
+                gameState.failCount++;
+                updateUI();
+                stopCrashGame(false);
+            }
+        }, 80);
+        return true;
+    }
+
+    function cashoutCrash() {
+        if (!crashActive) { addLog('Нет активной игры'); return; }
+        if (crashMultiplier >= crashCrashPoint) {
+            addLog('⚠️ Уже поздно, ракетка взорвалась!');
+            stopCrashGame(false);
+        } else {
+            stopCrashGame(true);
+        }
+    }
+
+    // Ежедневный бонус
+    function dailyBonus() {
+        let today = new Date().toDateString();
+        if (gameState.lastBonusDate === today) {
+            addLog('❌ Сегодня вы уже забирали ежедневный бонус!');
+            return;
+        }
+        let bonus = Math.floor(Math.random() * (5000 - 1000 + 1) + 1000);
+        gameState.balance += bonus;
+        gameState.lastBonusDate = today;
+        updateUI();
+        addLog(`🎁 ЕЖЕДНЕВНЫЙ БОНУС! +${bonus} монет. Баланс: ${gameState.balance}`);
+    }
+
+    // ---------- ИНИЦИАЛИЗАЦИЯ UI И ОБРАБОТЧИКОВ ----------
+    document.getElementById('spinActionBtn').onclick = () => {
+        let bet = parseInt(document.getElementById('spinBet').value);
+        if (isNaN(bet)) bet = 100;
+        spinGame(bet);
+    };
+    document.getElementById('startCrashBtn').onclick = () => {
+        let bet = parseInt(document.getElementById('crashBet').value);
+        if (isNaN(bet)) bet = 100;
+        startCrash(bet);
+    };
+    document.getElementById('cashoutBtn').onclick = () => cashoutCrash();
+    document.getElementById('dailyBonusBtn').onclick = () => dailyBonus();
+    document.getElementById('resetGameBtn').onclick = () => resetGame();
+
+    // Вкладки
+    const spinPanel = document.getElementById('spinPanel');
+    const crashPanel = document.getElementById('crashPanel');
+    const spinTab = document.getElementById('spinTabBtn');
+    const crashTab = document.getElementById('crashTabBtn');
+    spinTab.onclick = () => { spinPanel.style.display = 'block'; crashPanel.style.display = 'none'; spinTab.classList.add('active'); crashTab.classList.remove('active'); };
+    crashTab.onclick = () => { spinPanel.style.display = 'none'; crashPanel.style.display = 'block'; crashTab.classList.add('active'); spinTab.classList.remove('active'); if (crashIntervalId) clearInterval(crashIntervalId); };
+    
+    // помощники ставок
+    document.getElementById('spinHalfBtn').onclick = () => { let inp = document.getElementById('spinBet'); inp.value = Math.max(1, Math.floor(parseInt(inp.value)/2)); };
+    document.getElementById('spinDoubleBtn').onclick = () => { let inp = document.getElementById('spinBet'); inp.value = Math.floor(parseInt(inp.value)*2); };
+    document.getElementById('crashHalfBtn').onclick = () => { let inp = document.getElementById('crashBet'); inp.value = Math.max(1, Math.floor(parseInt(inp.value)/2)); };
+    document.getElementById('crashDoubleBtn').onclick = () => { let inp = document.getElementById('crashBet'); inp.value = Math.floor(parseInt(inp.value)*2); };
+
+    updateUI();
+    addLog('🎮 Готово! Играй в Спин или Ракетку. Баланс 10000');
+</script>
+</body>
+</html>

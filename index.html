@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="https://mq3st.github.io/mqst.github.io/manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CasEmp | Империя удачи</title>
     <meta name="description" content="CasEmp — играй в захватывающие игры Спин и Ракетка. Повышай уровень, получай бонусы и сражайся с удачей!">
     <meta name="keywords" content="casemp, casino empire, spin crash игра, ракетка игра, spin игра, казино империя">
@@ -14,11 +13,15 @@
     <meta property="og:description" content="Испытай удачу в играх Спин и Ракетка!">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://mq3st.github.io/mqst.github.io/">
-    
+    <link rel="manifest" href="https://mq3st.github.io/mqst.github.io/manifest.json">
+
     <style>
+        /* Базовые стили для полноэкранного режима в приложении */
         * {
             box-sizing: border-box;
             user-select: none;
+            margin: 0;
+            padding: 0;
         }
 
         body {
@@ -30,6 +33,9 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            /* Исправление для полноэкранного режима */
+            overflow-x: hidden;
+            width: 100%;
         }
 
         .game-container {
@@ -181,45 +187,71 @@
             padding: 15px;
             text-align: center;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .rocket-graph {
+            width: 100%;
+            height: 120px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #f9844a;
+        }
+
+        .graph-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            stroke-dasharray: 5;
         }
 
         .rocket {
-            font-size: 4rem;
+            font-size: 3rem;
             transition: transform 0.05s linear;
             display: inline-block;
+            margin: 10px 0;
+            z-index: 2;
+            position: relative;
         }
 
         .rocket-flying {
-            animation: rocketFly 0.1s infinite alternate;
+            animation: rocketFly 0.15s infinite alternate;
         }
 
         @keyframes rocketFly {
             0% { transform: translateY(0px) rotate(0deg); }
-            100% { transform: translateY(-15px) rotate(5deg); }
+            100% { transform: translateY(-12px) rotate(5deg); }
         }
 
         .rocket-crash {
-            animation: rocketFall 0.5s ease-in forwards;
+            animation: rocketFall 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
         }
 
         @keyframes rocketFall {
-            0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
-            50% { transform: translateY(40px) rotate(20deg); }
-            100% { transform: translateY(80px) rotate(45deg); opacity: 0; }
+            0% { transform: translateY(0px) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 5px red);}
+            100% { transform: translateY(180px) rotate(45deg); opacity: 0; filter: drop-shadow(0 0 15px darkred);}
         }
 
         .multiplier {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
             color: #f9c74f;
             font-family: monospace;
-            margin: 10px 0;
+            margin: 5px 0;
         }
 
         .crash-controls {
             display: flex;
             gap: 10px;
             margin-top: 15px;
+            width: 100%;
         }
 
         .cashout-btn {
@@ -308,6 +340,15 @@
             50% { background-color: #f9c74f; color: #1a1a2e; }
             100% { background-color: transparent; }
         }
+        
+        canvas {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -366,6 +407,9 @@
             <button id="crashDoubleBtn">×2</button>
         </div>
         <div class="rocket-area">
+            <div class="rocket-graph" id="flightGraph">
+                <canvas id="graphCanvas" width="400" height="100" style="width:100%; height:100%; background: #0a0f2a; border-radius: 15px;"></canvas>
+            </div>
             <div class="rocket" id="rocket">🚀</div>
             <div>МНОЖИТЕЛЬ</div>
             <div class="multiplier" id="multiplierDisplay">1.00</div>
@@ -388,6 +432,19 @@
 </div>
 
 <script>
+    // ------------------- ПОЛНОЭКРАННЫЙ РЕЖИМ (Убираем строку адреса в WebView) -------------------
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            window.scrollTo(0, 1);
+        }, 100);
+        // Дополнительно: просим отображать на весь экран
+        if (window.navigator.standalone === false || window.matchMedia('(display-mode: standalone)').matches === false) {
+            document.body.style.margin = "0";
+            document.body.style.padding = "0";
+        }
+    });
+
+    // Игровое состояние
     let gameState = {
         balance: 10000,
         level: 1,
@@ -397,6 +454,7 @@
         lastBonusDate: null,
     };
 
+    // DOM элементы
     const balanceEl = document.getElementById('balanceDisplay');
     const levelEl = document.getElementById('level');
     const xpEl = document.getElementById('xp');
@@ -406,6 +464,59 @@
     const reelPlayer = document.getElementById('reelPlayer');
     const reelCasino = document.getElementById('reelCasino');
     const rocket = document.getElementById('rocket');
+
+    // График для ракеты (canvas)
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    let graphPoints = [];  // массив точек высоты (0..1)
+
+    function drawGraph(currentHeight = 0) {
+        if (!ctx) return;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        canvas.width = w;
+        canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+        ctx.beginPath();
+        ctx.strokeStyle = '#f9c74f';
+        ctx.lineWidth = 3;
+        if (graphPoints.length === 0) {
+            // пустой график - рисуем линию внизу
+            ctx.moveTo(0, h);
+            ctx.lineTo(w, h);
+            ctx.stroke();
+            return;
+        }
+        const step = w / (graphPoints.length - 1);
+        let x = 0;
+        for (let i = 0; i < graphPoints.length; i++) {
+            let y = h - (graphPoints[i] * h);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            x += step;
+        }
+        ctx.stroke();
+        // рисуем текущую точку (ракета на графике)
+        if (currentHeight > 0) {
+            ctx.fillStyle = '#f72585';
+            let currX = w;
+            let currY = h - (currentHeight * h);
+            ctx.beginPath();
+            ctx.arc(currX, currY, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    }
+
+    function resetGraph() {
+        graphPoints = [];
+        if (ctx) drawGraph();
+    }
+
+    function addGraphPoint(height) {
+        graphPoints.push(height);
+        if (graphPoints.length > 80) graphPoints.shift();
+        drawGraph(height);
+    }
 
     function addLog(msg) {
         const div = document.createElement('div');
@@ -469,6 +580,7 @@
         document.getElementById('cashoutBtn').disabled = true;
         document.getElementById('startCrashBtn').disabled = false;
         rocket.classList.remove('rocket-flying', 'rocket-crash');
+        resetGraph();
     }
 
     function spinAnimation(playerNum, casinoNum, callback) {
@@ -503,7 +615,7 @@
         rocket.classList.add('rocket-crash');
         setTimeout(() => {
             rocket.classList.remove('rocket-crash');
-        }, 500);
+        }, 600);
     }
     
     function rocketStopAnimation() {
@@ -572,6 +684,7 @@
     let crashCrashPoint = 1.0;
     let crashIntervalId = null;
     let currentCrashBet = 0;
+    let maxMultiplierReached = 1.0;
 
     function stopCrashGame(manualCashout = false) {
         if (crashIntervalId) clearInterval(crashIntervalId);
@@ -584,11 +697,13 @@
                 addLog(`💰 ЗАБРАЛИ ДЕНЬГИ! Множитель x${crashMultiplier.toFixed(2)} | Выигрыш +${winAmount}`);
                 addXp(15);
                 rocketStopAnimation();
+                addGraphPoint(0);
             } else if (!manualCashout && crashMultiplier >= crashCrashPoint) {
                 let lost = currentCrashBet;
                 addLose(lost);
                 addLog(`💥 РАКЕТКА ВЗОРВАЛАСЬ при x${crashCrashPoint.toFixed(2)} | Потеряно ${lost}`);
                 rocketCrashAnimation();
+                addGraphPoint(0);
             }
         }
         crashActive = false;
@@ -597,6 +712,7 @@
         document.getElementById('cashoutBtn').disabled = true;
         document.getElementById('crashStatus').innerHTML = '';
         updateUI();
+        setTimeout(() => resetGraph(), 1000);
     }
 
     function startCrash(bet) {
@@ -608,8 +724,10 @@
         updateUI();
         currentCrashBet = bet;
         crashMultiplier = 1.0;
-        crashCrashPoint = parseFloat((Math.random() * (4.0 - 1.1) + 1.1).toFixed(2));
+        crashCrashPoint = parseFloat((Math.random() * (4.5 - 1.2) + 1.2).toFixed(2));
         crashActive = true;
+        maxMultiplierReached = 1.0;
+        resetGraph();
         
         document.getElementById('multiplierDisplay').innerHTML = '1.00';
         document.getElementById('startCrashBtn').disabled = true;
@@ -627,9 +745,12 @@
                 return;
             }
             let elapsed = (Date.now() - startTime) / 1000;
-            let newMult = 1.0 + elapsed * 1.2;
+            let newMult = 1.0 + elapsed * 1.4;
             if (newMult > 10) newMult = 10;
             crashMultiplier = parseFloat(newMult.toFixed(2));
+            if (crashMultiplier > maxMultiplierReached) maxMultiplierReached = crashMultiplier;
+            let heightNorm = Math.min(1.0, (crashMultiplier - 1) / 9);
+            addGraphPoint(heightNorm);
             document.getElementById('multiplierDisplay').innerHTML = crashMultiplier.toFixed(2);
             
             if (crashMultiplier >= crashCrashPoint) {
@@ -638,7 +759,7 @@
                 updateUI();
                 stopCrashGame(false);
             }
-        }, 80);
+        }, 70);
         return true;
     }
 
@@ -684,7 +805,7 @@
     const spinTab = document.getElementById('spinTabBtn');
     const crashTab = document.getElementById('crashTabBtn');
     spinTab.onclick = () => { spinPanel.style.display = 'block'; crashPanel.style.display = 'none'; spinTab.classList.add('active'); crashTab.classList.remove('active'); };
-    crashTab.onclick = () => { spinPanel.style.display = 'none'; crashPanel.style.display = 'block'; crashTab.classList.add('active'); spinTab.classList.remove('active'); if (crashIntervalId) clearInterval(crashIntervalId); rocketStopAnimation(); };
+    crashTab.onclick = () => { spinPanel.style.display = 'none'; crashPanel.style.display = 'block'; crashTab.classList.add('active'); spinTab.classList.remove('active'); if (crashIntervalId) clearInterval(crashIntervalId); rocketStopAnimation(); resetGraph(); };
     
     document.getElementById('spinHalfBtn').onclick = () => { let inp = document.getElementById('spinBet'); inp.value = Math.max(1, Math.floor(parseInt(inp.value)/2)); };
     document.getElementById('spinDoubleBtn').onclick = () => { let inp = document.getElementById('spinBet'); inp.value = Math.floor(parseInt(inp.value)*2); };
@@ -693,6 +814,7 @@
 
     updateUI();
     addLog('🎮 Добро пожаловать в CasEmp! Баланс 10000');
+    if (canvas) resetGraph();
 </script>
 </body>
 </html>

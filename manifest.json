@@ -1,0 +1,11 @@
+{
+  "name": "CasEmp",
+  "short_name": "CasEmp",
+  "id": "casemp",
+  "description": "Игра Спин и Ракетка",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0f3460",
+  "background_color": "#16213e",
+  "icons": []
+}
